@@ -8,11 +8,11 @@ def initWater():
 
 
 def getPercentFull():
-	retun (100*wlevel/wMax)
+	return (100*wlevel/wMax)
 
 def setMax(m):
 	wMax=m;
 
-def getWaterLevel()
+def getWaterLevel():
 	wlevel = #get sensor data
 	return wlevel
