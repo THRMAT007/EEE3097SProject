@@ -2,24 +2,24 @@
 #EEE3097S porject
 #class to handle the Water level measurments for the API
 
+class Waterlevel():
 
-wMax = 1.0
-wlevel = 0.0
+	def __init__(self,num):
+		self.wMax = num
 
-def getPercentFull():
-	clevel = getWaterLevel()
-	#print(str(clevel))
-	cmax = getMax()
-	#print(str(cmax))
-	return(clevel/cmax * 100)
+	def getPercentFull(self):
+		clevel = self.getWaterLevel()
+		#print(str(clevel))
+		cmax = self.getMax()
+		#print(str(cmax))
+		return(clevel/cmax * 100)
 
-def setMax(num):
-	wMax=num
-	print(str(wMax))
+	def setMax(self,num):
+		self.wMax=num
 
-def getMax():
-	return(wMax)
+	def getMax(self):
+		return(self.wMax)
 
-def getWaterLevel():
-	wlevel  = 523.1/1000 # get sensor data
-	return(wlevel)
+	def getWaterLevel(self):
+		wlevel  = 523.1/1000 # get sensor data
+		return(wlevel)

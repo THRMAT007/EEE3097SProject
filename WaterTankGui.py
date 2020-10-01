@@ -5,6 +5,7 @@ import Waterlevel
 import Temperature
 flag = True
 
+Water = Waterlevel.Waterlevel(1.0)
 
 while flag:
 	print("\nWelcome to Water Tank Managmnet")
@@ -19,14 +20,14 @@ while flag:
 			print("The air temperature is: "+str(airTemperature)+"\nThe water Temperature is: "+str(waterTemperature))
 	elif choice == 2:
 			#get Matt Data, water level
-			waterper = Waterlevel.getPercentFull()
+			waterper = Water.getPercentFull()
 			print("the water level is: "+str(waterper)+"%")
 	elif choice == 3:
 			#set Matts max water depth
 			wlMax= input("enter depth in m\n")
 			wlMax = float(wlMax)
-			Waterlevel.setMax(wlMax)
-			print("Tank depth set to: "+str(Waterlevel.getMax())+"m")
+			Water.setMax(wlMax)
+			print("Tank depth set to: "+str(Water.getMax())+"m")
 	elif choice == 4:
 			flag = False
 			print("goodbye")
