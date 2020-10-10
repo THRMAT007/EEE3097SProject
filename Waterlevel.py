@@ -1,7 +1,6 @@
 #Crated by Matthew Thorburn
 #EEE3097S porject
 #class to handle the Water level measurments for the API
-
 class Waterlevel():
 
 	def __init__(self,num):
