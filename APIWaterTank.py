@@ -3,10 +3,11 @@ import io
 import time
 import VL53L1X
 import keyboard
+from datetime import timedelta
 
-tank_depth = 0
-minTemp = 0
-maxTemp = 0
+tank_depth = None
+minTemp = None
+maxTemp = None
 flag = True
 tof = VL53L1X.VL53L1X(i2c_bus=1, i2c_address=0x29)
 
@@ -26,9 +27,9 @@ def setup():
     a_file = open("config.txt","r")
     list_of_lines = a_file.readlines()
     list_of_lines = list_of_lines
-    tank_depth = list_of_lines[0]#.rstrip()
-    minTemp = list_of_lines[1]
-    maxTemp = list_of_lines[2]
+    tank_depth = float(list_of_lines[0].rstrip())
+    minTemp = float(list_of_lines[1].rstrip())
+    maxTemp = float(list_of_lines[2])
     a_file.close()
     pass
 
@@ -42,18 +43,19 @@ def get_WaterLevel():
     global tank_depth
     global tof
     distance_in_mm = int(tof.get_distance())
-    print(distance_in_mm)
     wl = float( 1 - (distance_in_mm/1000.0)/float(tank_depth))*100.0
+    wl = round(wl,1)
     return wl
 
 
 def set_tank_depth(data):
     global tank_depth
-    tank_depth = data
+    tank_depth = float(data)
     a_file = open("config.txt","r")
     list_of_lines = a_file.readlines()
-    list_of_lines[0] = str(tank_depth)
+    list_of_lines[0] = str(tank_depth)+"\n"
 
+    #print (list_of_lines)
     a_file = open("config.txt","w")
     a_file.writelines(list_of_lines)
     a_file.close()
@@ -61,10 +63,10 @@ def set_tank_depth(data):
 
 def set_min_Temp(data):
     global minTemp
-    minTemp = data
+    minTemp = float(data)
     a_file = open("config.txt","r")
     list_of_lines = a_file.readlines()
-    list_of_lines[1] = str(tank_depth)
+    list_of_lines[1] = str(minTemp)+"\n"
 
     a_file = open("config.txt","w")
     a_file.writelines(list_of_lines)
@@ -73,10 +75,10 @@ def set_min_Temp(data):
 
 def set_max_Temp(data):
     global maxTemp
-    maxTemp = data
+    maxTemp = float(data)
     a_file = open("config.txt","r")
     list_of_lines = a_file.readlines()
-    list_of_lines[2] = str(tank_depth)
+    list_of_lines[2] = str(maxTemp)
 
     a_file = open("config.txt","w")
     a_file.writelines(list_of_lines)
@@ -120,13 +122,13 @@ def menu():
 		    tmin= input("enter minimum temperatue in celsius\n")
 		    tmin = float(tmin)
 		    set_min_Temp(tmin)
-		    print("the minimum temperature has been updated to to: "+str(tmin)+"m")
+		    print("the minimum temperature has been updated to to: "+str(tmin))
         elif (choice == 4):
 		    #set maximum temperature warning flag
 		    tmax= input("enter maximum temperatue in celsius\n")
 		    tmax = float(tmax)
 		    set_max_Temp(tmax)
-		    print("the minimum temperature has been updated to to: "+str(tmax)+"m")
+		    print("the minimum temperature has been updated to to: "+str(tmax))
         elif (choice == 5):
             print("press the w key to wake up")
             monitor()
@@ -143,40 +145,56 @@ def menu():
 def monitor():
     #do stuff in background
     global flag
+    global minTemp
+    global maxTemp
+
     warningflag = False
-    if keyboard.is_pressed("w"):
-        flag = True
-        menu()
-    else:
-        if(get_air_temp() > maxTemp):
-            print("Warning air temperature has exceeded maximum temperate allowed!!")
-            warningflag = True
+    fl =True
+    print("press CTRL+C to exit idle")
+    print("idling")
+    starttime = time.time()
+    try:
+        while fl:
+            time.sleep(0.001)
+            '''
+            if(get_air_temp() > maxTemp):
+                print("Warning air temperature has exceeded maximum temperate allowed!!")
+                warningflag = True
 
-        if( get_air_temp() < minTemp):
-            print("Warning air temperature has exceeded minimum temperate allowed")
-            warningflag = True
+            elif(get_air_temp() < minTemp):    
+                print("Warning air temperature has exceeded minimum temperate allowed")
+                warningflag = True
 
-        if(get_water_temp() > maxTemp):
-            print("Warning water temperature has exceeded maximum temperate allowed")
-            warningflag = True
+            elif(get_water_temp() > maxTemp):
+                print("Warning water temperature has exceeded maximum temperate allowed")
+                warningflag = True
 
-        if( get_water_temp() < minTemp):
-            print("Warning water temperature has exceeded minimum temperate allowed")
-            warningflag = True
+            elif( get_water_temp() < minTemp):
+                print("Warning water temperature has exceeded minimum temperate allowed")
+                warningflag = True
 
-        if(get_WaterLevel() < 50):
-            print("Tank is 5% or less full, please disconnect from rainwater tank and swop to mains water")
-            warningflag = True
-
-        else:
-            #monitor water level in background. collect data
-
-
-
-
+            elif(get_WaterLevel() < 5):
+                print("Tank is 5% or less full, please disconnect from rainwater tank and swop to mains water")
+                warningflag = True
+            
             if(warningflag):
                 print("please fix issue then relaunch app")
                 exit()
+            else:
+                background recording of data
+                print("data")
+                '''
+        print("done")
+
+    except KeyboardInterrupt:
+        fl=False
+        print("\nwaking up")
+        endtime = time.time() - starttime
+        endtime = round(endtime)
+        print("idled for: "+str(timedelta(seconds=endtime)))
+        flag=True
+        menu()
+ 
     pass
 
 # Main that is executed when program starts
@@ -185,6 +203,7 @@ if __name__ == "__main__":
         # Call setup function
         setup()
         menu()
+        
     except Exception as e:
         print(e)
 
