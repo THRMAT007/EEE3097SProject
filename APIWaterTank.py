@@ -1,9 +1,12 @@
 #attempt 2, have less opp and rather just straight access the sensors
 import io 
+import os
 import time
 import VL53L1X
 import keyboard
+import datetime
 from datetime import timedelta
+import time
 
 tank_depth = None
 minTemp = None
@@ -104,6 +107,7 @@ def menu():
         print("Please select a choice")
         print("1 to view data, 2 to set tank depth, 3 to set minimum Temperature , 4 to set maximum Temperature,5 to monitor, 6 to quit")
         choice = input("Enter a command:\n")
+
         if choice==1:   
             con = get_config()
             print("config setting are")
@@ -147,16 +151,22 @@ def monitor():
     global flag
     global minTemp
     global maxTemp
-
+    Loading = ['\\____','/\___','_/\__','__/\_','___/\\','____/','_____']
+    counter =0
     warningflag = False
     fl =True
+    measuring = True
     print("press CTRL+C to exit idle")
     print("idling")
     starttime = time.time()
-    try:
-        while fl:
-            time.sleep(0.001)
-            '''
+    while fl:      
+        try:
+            time.sleep(2)
+            now = datetime.datetime.now()
+            if now.hour == 18 and now.minute == 7 and measuring:
+                print("it is time")
+                measuring = False
+            
             if(get_air_temp() > maxTemp):
                 print("Warning air temperature has exceeded maximum temperate allowed!!")
                 warningflag = True
@@ -178,23 +188,28 @@ def monitor():
                 warningflag = True
             
             if(warningflag):
-                print("please fix issue then relaunch app")
-                exit()
+                #print("please fix issue then relaunch app")
+                fl = False
             else:
-                background recording of data
-                print("data")
-                '''
-        print("done")
+                #background recording of data
+                if counter ==7:
+                    counter=0              
+                #os.system('clear')
+                print(Loading[counter])
+                counter+=1
 
-    except KeyboardInterrupt:
-        fl=False
-        print("\nwaking up")
-        endtime = time.time() - starttime
-        endtime = round(endtime)
-        print("idled for: "+str(timedelta(seconds=endtime)))
-        flag=True
-        menu()
- 
+        except KeyboardInterrupt:
+            print("exiting")
+            fl=False
+                
+    print("done")
+
+    print("\nwaking up")
+    endtime = time.time() - starttime
+    endtime = round(endtime)
+    print("idled for: "+str(timedelta(seconds=endtime)))
+    flag=True
+    menu()
     pass
 
 # Main that is executed when program starts
