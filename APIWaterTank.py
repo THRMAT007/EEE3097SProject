@@ -7,7 +7,10 @@ import keyboard
 import datetime
 from datetime import timedelta
 import time
+import sqlite3
+from sqlite3 import Error
 
+conn =None
 tank_depth = None
 minTemp = None
 maxTemp = None
@@ -19,15 +22,19 @@ def setup():
     global tank_depth
     global minTemp
     global maxTemp
-    # starting tof sensor in Long range witch is up to 4m
+    # starting tof sensor in Long range which is up to 4m
     tof.open()
     tof.start_ranging(3)
 
     #Ross please put your setup here
     #bla bla
 
+    # database setup
+    create_connection(r"./Data/pythonsqlite.db")
+    insert_table(r"./Data/pythonsqlite.db",('12/10/2020','32','45','45','12'))
+    print(read_table(r"./Data/pythonsqlite.db"))
     #config values, taken from a config file
-    a_file = open("config.txt","r")
+    a_file = open("./Data/config.txt","r")
     list_of_lines = a_file.readlines()
     list_of_lines = list_of_lines
     tank_depth = float(list_of_lines[0].rstrip())
@@ -37,7 +44,7 @@ def setup():
     pass
 
 def get_config():
-    a_file = open("config.txt","r")
+    a_file = open("./Data/config.txt","r")
     list_of_lines = a_file.readlines()
     a_file.close()
     return list_of_lines
@@ -54,12 +61,12 @@ def get_WaterLevel():
 def set_tank_depth(data):
     global tank_depth
     tank_depth = float(data)
-    a_file = open("config.txt","r")
+    a_file = open("./Data/config.txt","r")
     list_of_lines = a_file.readlines()
     list_of_lines[0] = str(tank_depth)+"\n"
 
     #print (list_of_lines)
-    a_file = open("config.txt","w")
+    a_file = open("./Data/config.txt","w")
     a_file.writelines(list_of_lines)
     a_file.close()
     pass
@@ -67,11 +74,11 @@ def set_tank_depth(data):
 def set_min_Temp(data):
     global minTemp
     minTemp = float(data)
-    a_file = open("config.txt","r")
+    a_file = open("./Data/config.txt","r")
     list_of_lines = a_file.readlines()
     list_of_lines[1] = str(minTemp)+"\n"
 
-    a_file = open("config.txt","w")
+    a_file = open("./Data/config.txt","w")
     a_file.writelines(list_of_lines)
     a_file.close()
     pass
@@ -79,11 +86,11 @@ def set_min_Temp(data):
 def set_max_Temp(data):
     global maxTemp
     maxTemp = float(data)
-    a_file = open("config.txt","r")
+    a_file = open("./Data/config.txt","r")
     list_of_lines = a_file.readlines()
     list_of_lines[2] = str(maxTemp)
 
-    a_file = open("config.txt","w")
+    a_file = open("./Data/config.txt","w")
     a_file.writelines(list_of_lines)
     a_file.close()
     pass
@@ -95,6 +102,44 @@ def get_air_temp():
 def get_water_temp():
     watertemp = 20 # insert code to get water temperature
     return watertemp
+
+def create_connection(db_file):
+    #creats a database coonnection to a sqlite database
+    global conn
+    try:
+        conn = sqlite3.connect(db_file)
+        #print(sqlite3.version)
+    except Error as e:
+        print(e)
+    finally:
+        if conn:
+            conn.close()
+
+def insert_table(db_file,mydata):
+    #create a new project into the project table
+    connect = sqlite3.connect(db_file)
+    cur = connect.cursor()
+    #Assuming table has already been created
+    #cur.execute('CREATE TABLE waterlevel (date VARCHAR, midnight VARCHAR, morning VARCHAR, noon VARCHAR, evening VARCHAR)')
+    #connect.commit()
+    sqlite_insert = '''INSERT INTO waterlevel (date, midnight, morning, noon, evening) values (?, ?,?,?,?)'''
+    cur.execute(sqlite_insert,mydata)
+    #cur.execute('INSERT INTO waterlevel (date, midnight, morning, noon, evening) values ("18/10/2020", "75","64","59","23")')
+    connect.commit()
+    connect.close()
+    
+
+
+def read_table(db_file):
+
+    connect = sqlite3.connect(db_file)
+    cur = connect.cursor()
+    cur.execute('SELECT * FROM waterlevel ORDER BY date ASC')
+    data_1 = cur.fetchall()
+
+    connect.close()
+    return data_1
+
 
 def menu():
     global flag
@@ -153,19 +198,37 @@ def monitor():
     global maxTemp
     Loading = ['\\____','/\___','_/\__','__/\_','___/\\','____/','_____']
     counter =0
+
     warningflag = False
     fl =True
-    measuring = True
+
+    measuring = [True,True,True,True]
+    lvlResults = ['55','34','11','39']
+    dataStorage = datetime.date.today()
+
     print("press CTRL+C to exit idle")
     print("idling")
     starttime = time.time()
+    
     while fl:      
         try:
             time.sleep(2)
             now = datetime.datetime.now()
-            if now.hour == 18 and now.minute == 7 and measuring:
-                print("it is time")
-                measuring = False
+            if now.hour == 0 and now.minute == 0 and measuring[0]:
+                #print("it is time")
+                measuring[0] = False
+
+            if now.hour == 6 and now.minute == 0 and measuring[1]:
+                #print("it is time")
+                measuring[1] = False
+            
+            if now.hour == 12 and now.minute == 0 and measuring[2]:
+                #print("it is time")
+                measuring[2] = False
+            
+            if now.hour == 18 and now.minute == 0 and measuring[3]:
+                #print("it is time")
+                measuring[3] = False
             
             if(get_air_temp() > maxTemp):
                 print("Warning air temperature has exceeded maximum temperate allowed!!")
@@ -194,7 +257,7 @@ def monitor():
                 #background recording of data
                 if counter ==7:
                     counter=0              
-                #os.system('clear')
+                print(chr(27) + "[2J") # clears terminal
                 print(Loading[counter])
                 counter+=1
 
@@ -203,6 +266,26 @@ def monitor():
             fl=False
                 
     print("done")
+    print(measuring)
+    j=0
+    for x in measuring:
+        if not x:
+            j+=1
+    
+    storedata = ['']
+    if(j>0):
+        storedata[0]=dataStorage.strftime('%Y/%m/%d')
+        k = 0
+        for i in range(0,4):
+            if not measuring[i]:
+                storedata.append(lvlResults[i])
+        print(storedata)          
+        f=open("./Data/data.txt",'a+')
+        for x in storedata:
+            f.write(x+'\r\n')
+        f.close()
+    else:
+        print("no data to store")
 
     print("\nwaking up")
     endtime = time.time() - starttime
