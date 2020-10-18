@@ -30,9 +30,10 @@ def setup():
     #bla bla
 
     # database setup
-    create_connection(r"./Data/pythonsqlite.db")
-    insert_table(r"./Data/pythonsqlite.db",('12/10/2020','32','45','45','12'))
-    print(read_table(r"./Data/pythonsqlite.db"))
+    create_connection()
+    #insert_dummy_data()
+
+    print(read_table())
     #config values, taken from a config file
     a_file = open("./Data/config.txt","r")
     list_of_lines = a_file.readlines()
@@ -103,11 +104,11 @@ def get_water_temp():
     watertemp = 20 # insert code to get water temperature
     return watertemp
 
-def create_connection(db_file):
+def create_connection():
     #creats a database coonnection to a sqlite database
     global conn
     try:
-        conn = sqlite3.connect(db_file)
+        conn = sqlite3.connect('./Data/pythonsqlite.db')
         #print(sqlite3.version)
     except Error as e:
         print(e)
@@ -115,26 +116,79 @@ def create_connection(db_file):
         if conn:
             conn.close()
 
-def insert_table(db_file,mydata):
+def insert_dummy_data():
+
+    try:
+        connect = sqlite3.connect('./Data/pythonsqlite.db')
+        cur = connect.cursor()
+        cur.execute('CREATE TABLE waterlevel (stdate DATE, midnight REAL DEFAULT 0 , morning REAL DEFAULT 0, noon REAL DEFAULT 0, evening REAL DEFAULT 0)')
+        connect.commit()
+        dummydate = datetime.datetime(2020, 10, 12)
+        fakedata = (dummydate, 44, 23, 11, 9)
+
+        sqlite_insert = '''INSERT INTO waterlevel (stdate, midnight, morning, noon, evening) values (?, ?, ?, ?, ?);'''
+        cur.execute(sqlite_insert,fakedata)
+        connect.commit()
+    
+    except Error as e:
+        print("failed to insert into the sqlite table",e)
+    finally:
+        if connect:
+            connect.close()
+            print(read_table)
+
+
+def insert_table(data,pos):
     #create a new project into the project table
-    connect = sqlite3.connect(db_file)
-    cur = connect.cursor()
-    #Assuming table has already been created
-    #cur.execute('CREATE TABLE waterlevel (date VARCHAR, midnight VARCHAR, morning VARCHAR, noon VARCHAR, evening VARCHAR)')
-    #connect.commit()
-    sqlite_insert = '''INSERT INTO waterlevel (date, midnight, morning, noon, evening) values (?, ?,?,?,?)'''
-    cur.execute(sqlite_insert,mydata)
-    #cur.execute('INSERT INTO waterlevel (date, midnight, morning, noon, evening) values ("18/10/2020", "75","64","59","23")')
-    connect.commit()
-    connect.close()
+
+    try:
+        connect = sqlite3.connect('./Data/pythonsqlite.db')
+        cur = connect.cursor()
+
+        mydate = datetime.datetime.now().date()
+        print(mydate)
+        cur.execute("SELECT * FROM waterlevel WHERE stdate = date('now');")
+
+        print(cur.fetchall())
+        if cur.fetchall() == None:
+            print("no data entries for date: ",mydate)
+            sqlite_insert = '''INSERT INTO waterlevel (stdate) values (?);'''
+            cur.execute(sqlite_insert,mydata)
+            connect.commit()
+        if(pos==0):
+            sqlite_insert = '''UPDATE waterlevel SET midnight = ? WHERE stdate = date('now')'''
+            cur.execute(sqlite_insert,data)
+            connect.commit()
+        elif(pos==1):
+            sqlite_insert = '''UPDATE waterlevel SET morning = ? WHERE stdate = date('now')'''
+            cur.execute(sqlite_insert,data)
+            connect.commit()
+        elif(pos==2):
+            sqlite_insert = '''UPDATE waterlevel SET noon = ? WHERE stdate = date('now')'''
+            cur.execute(sqlite_insert,data)
+            connect.commit()
+        elif(pos==3):
+            sqlite_insert = '''UPDATE waterlevel SET evening = ? WHERE stdate = date('now')'''
+            cur.execute(sqlite_insert,data)
+            connect.commit()
+
+        print("wah")
+        print(mydata)
+
+    
+    except Error as e:
+        print("failed to insert into the sqlite table",e)
+    finally:
+        if connect:
+            connect.close()
     
 
 
-def read_table(db_file):
+def read_table():
 
-    connect = sqlite3.connect(db_file)
+    connect = sqlite3.connect('./Data/pythonsqlite.db')
     cur = connect.cursor()
-    cur.execute('SELECT * FROM waterlevel ORDER BY date ASC')
+    cur.execute('SELECT * FROM waterlevel ORDER BY stdate ASC')
     data_1 = cur.fetchall()
 
     connect.close()
@@ -191,6 +245,7 @@ def menu():
     pass
 		
 
+
 def monitor():
     #do stuff in background
     global flag
@@ -203,31 +258,36 @@ def monitor():
     fl =True
 
     measuring = [True,True,True,True]
-    lvlResults = ['55','34','11','39']
+    lvlResults = ['','','','']
     dataStorage = datetime.date.today()
 
     print("press CTRL+C to exit idle")
     print("idling")
     starttime = time.time()
-    
+
+
     while fl:      
         try:
             time.sleep(2)
             now = datetime.datetime.now()
             if now.hour == 0 and now.minute == 0 and measuring[0]:
                 #print("it is time")
+                insert_table(get_WaterLevel(),0)
                 measuring[0] = False
 
             if now.hour == 6 and now.minute == 0 and measuring[1]:
                 #print("it is time")
+                insert_table(get_WaterLevel(),0)
                 measuring[1] = False
             
             if now.hour == 12 and now.minute == 0 and measuring[2]:
                 #print("it is time")
+                insert_table(get_WaterLevel(),0)
                 measuring[2] = False
             
             if now.hour == 18 and now.minute == 0 and measuring[3]:
                 #print("it is time")
+                insert_table(get_WaterLevel(),0)
                 measuring[3] = False
             
             if(get_air_temp() > maxTemp):
@@ -247,7 +307,7 @@ def monitor():
                 warningflag = True
 
             elif(get_WaterLevel() < 5):
-                print("Tank is 5% or less full, please disconnect from rainwater tank and swop to mains water")
+                print("Tank is 5% or less full, please disconnect from rainwater tank and use mains water")
                 warningflag = True
             
             if(warningflag):
@@ -274,6 +334,7 @@ def monitor():
     
     storedata = ['']
     if(j>0):
+
         storedata[0]=dataStorage.strftime('%Y/%m/%d')
         k = 0
         for i in range(0,4):
