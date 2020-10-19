@@ -31,7 +31,7 @@ def setup():
 
     # database setup
     create_connection()
-    #insert_dummy_data()
+    insert_dummy_data()
 
     print(read_table())
     #config values, taken from a config file
@@ -121,12 +121,12 @@ def insert_dummy_data():
     try:
         connect = sqlite3.connect('./Data/pythonsqlite.db')
         cur = connect.cursor()
-        cur.execute('CREATE TABLE waterlevel (stdate DATE, midnight REAL DEFAULT 0 , morning REAL DEFAULT 0, noon REAL DEFAULT 0, evening REAL DEFAULT 0)')
+        cur.execute('CREATE TABLE waterlevel (stdate DATE, midnight REAL DEFAULT 0 , morning REAL DEFAULT 0, noon REAL DEFAULT 0, evening REAL DEFAULT 0, change REAL DEFAULT 50);')
         connect.commit()
         dummydate = datetime.datetime(2020, 10, 12)
-        fakedata = (dummydate, 44, 23, 11, 9)
+        fakedata = (dummydate, 44, 23, 11, 9, 35)
 
-        sqlite_insert = '''INSERT INTO waterlevel (stdate, midnight, morning, noon, evening) values (?, ?, ?, ?, ?);'''
+        sqlite_insert = '''INSERT INTO waterlevel (stdate, midnight, morning, noon, evening, change) values (?, ?, ?, ?, ?, ?);'''
         cur.execute(sqlite_insert,fakedata)
         connect.commit()
     
@@ -144,37 +144,39 @@ def insert_table(data,pos):
     try:
         connect = sqlite3.connect('./Data/pythonsqlite.db')
         cur = connect.cursor()
-
+        data = float(data)
         mydate = datetime.datetime.now().date()
         print(mydate)
         cur.execute("SELECT * FROM waterlevel WHERE stdate = date('now');")
-
         print(cur.fetchall())
-        if cur.fetchall() == None:
+        if cur.fetchall() == []:
             print("no data entries for date: ",mydate)
             sqlite_insert = '''INSERT INTO waterlevel (stdate) values (?);'''
-            cur.execute(sqlite_insert,mydata)
+            cur.execute(sqlite_insert,(mydate,))
             connect.commit()
+            print("date added")
         if(pos==0):
-            sqlite_insert = '''UPDATE waterlevel SET midnight = ? WHERE stdate = date('now')'''
-            cur.execute(sqlite_insert,data)
+            sqlite_insert = '''UPDATE waterlevel SET midnight = ? WHERE stdate = date('now');'''
+            cur.execute(sqlite_insert,(data,))
             connect.commit()
         elif(pos==1):
-            sqlite_insert = '''UPDATE waterlevel SET morning = ? WHERE stdate = date('now')'''
-            cur.execute(sqlite_insert,data)
+            sqlite_insert = '''UPDATE waterlevel SET morning = ? WHERE stdate = date('now');'''
+            cur.execute(sqlite_insert,(data,))
             connect.commit()
         elif(pos==2):
-            sqlite_insert = '''UPDATE waterlevel SET noon = ? WHERE stdate = date('now')'''
-            cur.execute(sqlite_insert,data)
+            sqlite_insert = '''UPDATE waterlevel SET noon = ? WHERE stdate = date('now');'''
+            cur.execute(sqlite_insert,(data,))
             connect.commit()
         elif(pos==3):
-            sqlite_insert = '''UPDATE waterlevel SET evening = ? WHERE stdate = date('now')'''
-            cur.execute(sqlite_insert,data)
+            sqlite_insert = '''UPDATE waterlevel SET evening = ? WHERE stdate = date('now');'''
+            cur.execute(sqlite_insert,(data,))
+            connect.commit()
+
+            sqlite_insert = '''UPDATE waterlevel SET change = (SELECT (midnight + morning + noon + evening)/4 FROM waterlevel WHERE stdate = date('now')) WHERE stdate = date('now'); '''
+            cur.execute(sqlite_insert)
             connect.commit()
 
         print("wah")
-        print(mydata)
-
     
     except Error as e:
         print("failed to insert into the sqlite table",e)
@@ -193,6 +195,7 @@ def read_table():
 
     connect.close()
     return data_1
+
 
 
 def menu():
@@ -268,27 +271,31 @@ def monitor():
 
     while fl:      
         try:
-            time.sleep(2)
+            time.sleep(5)
             now = datetime.datetime.now()
             if now.hour == 0 and now.minute == 0 and measuring[0]:
                 #print("it is time")
                 insert_table(get_WaterLevel(),0)
                 measuring[0] = False
+                measuring[1] = True
 
             if now.hour == 6 and now.minute == 0 and measuring[1]:
                 #print("it is time")
-                insert_table(get_WaterLevel(),0)
+                insert_table(get_WaterLevel(),1)
                 measuring[1] = False
+                measuring[2] = True
             
             if now.hour == 12 and now.minute == 0 and measuring[2]:
                 #print("it is time")
-                insert_table(get_WaterLevel(),0)
+                insert_table(get_WaterLevel(),2)
                 measuring[2] = False
+                measuring[3] = True
             
             if now.hour == 18 and now.minute == 0 and measuring[3]:
                 #print("it is time")
-                insert_table(get_WaterLevel(),0)
+                insert_table(get_WaterLevel(),3)
                 measuring[3] = False
+                measuring[0] = True
             
             if(get_air_temp() > maxTemp):
                 print("Warning air temperature has exceeded maximum temperate allowed!!")
@@ -317,7 +324,7 @@ def monitor():
                 #background recording of data
                 if counter ==7:
                     counter=0              
-                print(chr(27) + "[2J") # clears terminal
+                #print(chr(27) + "[2J") # clears terminal
                 print(Loading[counter])
                 counter+=1
 
