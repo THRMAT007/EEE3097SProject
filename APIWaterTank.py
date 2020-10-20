@@ -9,6 +9,7 @@ from datetime import timedelta
 import time
 import sqlite3
 from sqlite3 import Error
+import re
 
 conn =None
 tank_depth = None
@@ -31,7 +32,7 @@ def setup():
 
     # database setup
     create_connection()
-    insert_dummy_data()
+    #insert_dummy_data()
 
     print(read_table())
     #config values, taken from a config file
@@ -124,7 +125,14 @@ def insert_dummy_data():
         cur.execute('CREATE TABLE waterlevel (stdate DATE, midnight REAL DEFAULT 0 , morning REAL DEFAULT 0, noon REAL DEFAULT 0, evening REAL DEFAULT 0, change REAL DEFAULT 50);')
         connect.commit()
         dummydate = datetime.datetime(2020, 10, 12)
-        fakedata = (dummydate, 44, 23, 11, 9, 35)
+        fakedata = (dummydate, 88, 83, 78, 69, 19)
+
+        sqlite_insert = '''INSERT INTO waterlevel (stdate, midnight, morning, noon, evening, change) values (?, ?, ?, ?, ?, ?);'''
+        cur.execute(sqlite_insert,fakedata)
+        connect.commit()
+
+        dummydate = datetime.datetime(2020, 10, 13)
+        fakedata = (dummydate, 65, 58, 70, 66, -1)
 
         sqlite_insert = '''INSERT INTO waterlevel (stdate, midnight, morning, noon, evening, change) values (?, ?, ?, ?, ?, ?);'''
         cur.execute(sqlite_insert,fakedata)
@@ -172,7 +180,7 @@ def insert_table(data,pos):
             cur.execute(sqlite_insert,(data,))
             connect.commit()
 
-            sqlite_insert = '''UPDATE waterlevel SET change = (SELECT (midnight + morning + noon + evening)/4 FROM waterlevel WHERE stdate = date('now')) WHERE stdate = date('now'); '''
+            sqlite_insert = '''UPDATE waterlevel SET change = (SELECT (midnight - evening) FROM waterlevel WHERE stdate = date('now')) WHERE stdate = date('now'); '''
             cur.execute(sqlite_insert)
             connect.commit()
 
@@ -184,6 +192,13 @@ def insert_table(data,pos):
         if connect:
             connect.close()
     
+def cal_daysleft():
+    connect = sqlite3.connect('./Data/pythonsqlite.db')
+    cur = connect.cursor()
+    cur.execute('SELECT AVG(change) FROM waterlevel')
+    data_avg = cur.fetchall()
+    connect.close()
+    return data_avg
 
 
 def read_table():
@@ -213,9 +228,13 @@ def menu():
         if choice==1:   
             con = get_config()
             print("config setting are")
-            print("the tank depth is set at "+str(con[0])+"m . The minimum Temperature is: "+str(con[1])+" and the maximum Temperature is: "+str(con[2]))
+            print("The tank depth is set at "+str(re.sub("[^0-9.]",'',con[0]))+"m .\nThe minimum Temperature is: "+str(re.sub("[^0-9.]",'',con[1]))+", and the maximum Temperature is: "+str(re.sub("[^0-9.]",'',con[2])))
             wlevel = get_WaterLevel()
-            print("the water level is: "+str(wlevel)+"%")
+            print("The water level is: "+str(wlevel)+"%")
+            rows = cal_daysleft()
+            row = float(re.sub("[^0-9.]",'',str(rows[0])))
+            print("there are: "+str(round(wlevel/row ,1))+" days left of water")
+            #print(row)
             
         elif (choice == 2):
 		    #set Matts max water depth
@@ -239,6 +258,7 @@ def menu():
             print("press the w key to wake up")
             monitor()
             flag = False
+            
         elif (choice == 6):
             flag = False
             tof.stop_ranging()
@@ -274,25 +294,21 @@ def monitor():
             time.sleep(5)
             now = datetime.datetime.now()
             if now.hour == 0 and now.minute == 0 and measuring[0]:
-                #print("it is time")
                 insert_table(get_WaterLevel(),0)
                 measuring[0] = False
                 measuring[1] = True
 
             if now.hour == 6 and now.minute == 0 and measuring[1]:
-                #print("it is time")
                 insert_table(get_WaterLevel(),1)
                 measuring[1] = False
                 measuring[2] = True
             
             if now.hour == 12 and now.minute == 0 and measuring[2]:
-                #print("it is time")
                 insert_table(get_WaterLevel(),2)
                 measuring[2] = False
                 measuring[3] = True
             
             if now.hour == 18 and now.minute == 0 and measuring[3]:
-                #print("it is time")
                 insert_table(get_WaterLevel(),3)
                 measuring[3] = False
                 measuring[0] = True
@@ -318,7 +334,7 @@ def monitor():
                 warningflag = True
             
             if(warningflag):
-                #print("please fix issue then relaunch app")
+                print("please fix issue before continueing monitoring")
                 fl = False
             else:
                 #background recording of data
@@ -332,29 +348,7 @@ def monitor():
             print("exiting")
             fl=False
                 
-    print("done")
-    print(measuring)
-    j=0
-    for x in measuring:
-        if not x:
-            j+=1
     
-    storedata = ['']
-    if(j>0):
-
-        storedata[0]=dataStorage.strftime('%Y/%m/%d')
-        k = 0
-        for i in range(0,4):
-            if not measuring[i]:
-                storedata.append(lvlResults[i])
-        print(storedata)          
-        f=open("./Data/data.txt",'a+')
-        for x in storedata:
-            f.write(x+'\r\n')
-        f.close()
-    else:
-        print("no data to store")
-
     print("\nwaking up")
     endtime = time.time() - starttime
     endtime = round(endtime)
