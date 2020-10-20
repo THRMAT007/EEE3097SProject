@@ -24,6 +24,7 @@ def setup():
     global minTemp
     global maxTemp
     # starting tof sensor in Long range which is up to 4m
+    print("Sensors Used: ")
     tof.open()
     tof.start_ranging(3)
 
@@ -34,7 +35,7 @@ def setup():
     create_connection()
     #insert_dummy_data()
 
-    print(read_table())
+    #print(read_table())
     #config values, taken from a config file
     a_file = open("./Data/config.txt","r")
     list_of_lines = a_file.readlines()
@@ -202,7 +203,7 @@ def cal_daysleft():
 
 
 def read_table():
-
+    #reads the data out of the database
     connect = sqlite3.connect('./Data/pythonsqlite.db')
     cur = connect.cursor()
     cur.execute('SELECT * FROM waterlevel ORDER BY stdate ASC')
@@ -214,6 +215,7 @@ def read_table():
 
 
 def menu():
+    #menu user interacts with the API with
     global flag
     global tank_depth
     global minTemp
@@ -234,6 +236,10 @@ def menu():
             rows = cal_daysleft()
             row = float(re.sub("[^0-9.]",'',str(rows[0])))
             print("there are: "+str(round(wlevel/row ,1))+" days left of water")
+            datatable = read_table()
+            print("Date:                Midnight:   Morning:    Noon:   Evening:    Change:")
+            for x in datatable:
+                print(str(x[0])+"   "+str(x[1])+"        "+str(x[2])+"       "+str(x[3])+"      "+str(x[4])+"       "+str(x[5]))
             #print(row)
             
         elif (choice == 2):
@@ -274,15 +280,15 @@ def monitor():
     global flag
     global minTemp
     global maxTemp
+    #idle animation
     Loading = ['\\____','/\___','_/\__','__/\_','___/\\','____/','_____']
     counter =0
 
     warningflag = False
     fl =True
 
+    #flags used to check if data has been stored
     measuring = [True,True,True,True]
-    lvlResults = ['','','','']
-    dataStorage = datetime.date.today()
 
     print("press CTRL+C to exit idle")
     print("idling")
@@ -291,8 +297,8 @@ def monitor():
 
     while fl:      
         try:
-            time.sleep(5)
             now = datetime.datetime.now()
+            # Measuring time conditions
             if now.hour == 0 and now.minute == 0 and measuring[0]:
                 insert_table(get_WaterLevel(),0)
                 measuring[0] = False
@@ -313,6 +319,7 @@ def monitor():
                 measuring[3] = False
                 measuring[0] = True
             
+            #Warning Conditions for temperature and waterlevel
             if(get_air_temp() > maxTemp):
                 print("Warning air temperature has exceeded maximum temperate allowed!!")
                 warningflag = True
@@ -332,10 +339,13 @@ def monitor():
             elif(get_WaterLevel() < 5):
                 print("Tank is 5% or less full, please disconnect from rainwater tank and use mains water")
                 warningflag = True
-            
+                
+            #stop program is there is a warning
             if(warningflag):
                 print("please fix issue before continueing monitoring")
                 fl = False
+                quit()
+            #Ideal if no warnings    
             else:
                 #background recording of data
                 if counter ==7:
@@ -343,12 +353,16 @@ def monitor():
                 #print(chr(27) + "[2J") # clears terminal
                 print(Loading[counter])
                 counter+=1
+            #sleep program for 5 seconds, gives time for keyboard interupt, slows program down to make idle animation work, 
+            time.sleep(5)
 
+        #Idle escape condition
         except KeyboardInterrupt:
             print("exiting")
+            #break the idle loop
             fl=False
                 
-    
+    #escape condition has been met
     print("\nwaking up")
     endtime = time.time() - starttime
     endtime = round(endtime)
