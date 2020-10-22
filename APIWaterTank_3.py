@@ -55,7 +55,14 @@ def get_config():
 def get_WaterLevel():
     global tank_depth
     global tof
-    distance_in_mm = int(tof.get_distance())
+    #take 5 results and get the average to improve accuracy
+    distance_in_mm = 0
+
+    for i in range(0,7):
+        if i>2:
+            distance_in_mm += int(tof.get_distance())
+    distance_in_mm = distance_in_mm/5
+
     wl = float( 1 - (distance_in_mm/1000.0)/float(tank_depth))*100.0
     wl = round(wl,1)
     return wl
@@ -99,11 +106,17 @@ def set_max_Temp(data):
     pass
 
 def get_air_temp():
-    airtemp = 30 # insert code to get air temperature
+    airtemp=0
+    for i in range(0,5):
+        airtemp += 30 # insert code to get air temperature
+    airtemp = airtemp/5
     return airtemp
 
 def get_water_temp():
-    watertemp = 20 # insert code to get water temperature
+    watertemp=0
+    for i in range(0,5):
+        watertemp += 20 # insert code to get air temperature
+    watertemp = watertemp/5 # insert code to get water temperature
     return watertemp
 
 def create_connection():
@@ -355,6 +368,12 @@ def monitor():
                 counter+=1
             #sleep program for 5 seconds, gives time for keyboard interupt, slows program down to make idle animation work, 
             time.sleep(5)
+            wlevel = get_WaterLevel()
+            print(now.strftime("%Y/%m/%d, %H:%M:%S"))
+            print(("The water level is: "+str(wlevel)+"%"))
+            wtemp = get_water_temp()
+            atemp = get_air_temp()
+            print(("The ambient air temperatur is: "+str(wtemp)+chr(176)+"C. The water temperaturn is: "+str(atemp)+chr(176)+"C."))
 
         #Idle escape condition
         except KeyboardInterrupt:
