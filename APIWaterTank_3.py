@@ -9,7 +9,13 @@ from datetime import timedelta
 import time
 import sqlite3
 from sqlite3 import Error
+######The chad Ross' imports below, the Virgin Matthews imports above######
 import re
+import busio
+import digitalio
+import board
+import adafruit_mcp3xxx.mcp3008 as MCP
+from adafruit_mcp3xxx.analog_in import AnalogIn
 
 conn =None
 tank_depth = None
@@ -29,6 +35,12 @@ def setup():
     tof.start_ranging(3)
 
     #Ross please put your setup here
+    # create the spi bus
+    spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
+    # create the cs (chip select)
+    cs = digitalio.DigitalInOut(board.D5)
+    # create the mcp object
+    mcp = MCP.MCP3008(spi, cs)
     #bla bla
 
     # database setup
@@ -104,18 +116,20 @@ def set_max_Temp(data):
     a_file.writelines(list_of_lines)
     a_file.close()
     pass
-
+#NB NOTE FOR MATTHEW: programmed so that channel 0 of ADC is for water sensro and channel 1 of ADC is for air
 def get_air_temp():
     airtemp=0
     for i in range(0,5):
-        airtemp += 30 # insert code to get air temperature
+        airsensor = AnalogIn(mcp, MCP.P1)
+        airtemp += (airsensor.voltage * 100)-273 # insert code to get air temperature//DONE
     airtemp = airtemp/5
     return airtemp
 
 def get_water_temp():
     watertemp=0
     for i in range(0,5):
-        watertemp += 20 # insert code to get air temperature
+        watersensor = AnalogIn(mcp, MCP.P0)
+        watertemp += (watersensor.voltage * 100)-273 # insert code to get air temperature//DONE
     watertemp = watertemp/5 # insert code to get water temperature
     return watertemp
 
