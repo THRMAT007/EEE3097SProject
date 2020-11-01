@@ -1,4 +1,4 @@
-#attempt 2, have less opp and rather just straight access the sensors
+
 import io 
 import os
 import time
@@ -9,7 +9,6 @@ from datetime import timedelta
 import time
 import sqlite3
 from sqlite3 import Error
-######The chad Ross' imports below, the Virgin Matthews imports above######
 import re
 import busio
 import digitalio
@@ -34,7 +33,6 @@ def setup():
     tof.open()
     tof.start_ranging(3)
 
-    #Ross please put your setup here
     # create the spi bus
     spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
     # create the cs (chip select)
@@ -47,7 +45,6 @@ def setup():
     create_connection()
     #insert_dummy_data()
 
-    #print(read_table())
     #config values, taken from a config file
     a_file = open("./Data/config.txt","r")
     list_of_lines = a_file.readlines()
@@ -76,7 +73,7 @@ def get_WaterLevel():
     distance_in_mm = distance_in_mm/5
 
     wl = float( 1 - (distance_in_mm/1000.0)/float(tank_depth))*100.0
-    wl = round(wl,1)
+    wl = round(wl,0)
     return wl
 
 
@@ -116,12 +113,12 @@ def set_max_Temp(data):
     a_file.writelines(list_of_lines)
     a_file.close()
     pass
-#NB NOTE FOR MATTHEW: programmed so that channel 0 of ADC is for water sensro and channel 1 of ADC is for air
+# programmed so that channel 0 of ADC is for water sensro and channel 1 of ADC is for air
 def get_air_temp():
     airtemp=0
     for i in range(0,5):
         airsensor = AnalogIn(mcp, MCP.P1)
-        airtemp += (airsensor.voltage * 100)-273 # insert code to get air temperature//DONE
+        airtemp += (airsensor.voltage * 100)-273 
     airtemp = airtemp/5
     return airtemp
 
@@ -129,8 +126,8 @@ def get_water_temp():
     watertemp=0
     for i in range(0,5):
         watersensor = AnalogIn(mcp, MCP.P0)
-        watertemp += (watersensor.voltage * 100)-273 # insert code to get air temperature//DONE
-    watertemp = watertemp/5 # insert code to get water temperature
+        watertemp += (watersensor.voltage * 100)-273 
+    watertemp = watertemp/5 
     return watertemp
 
 def create_connection():
@@ -175,7 +172,6 @@ def insert_dummy_data():
 
 
 def insert_table(data,pos):
-    #create a new project into the project table
 
     try:
         connect = sqlite3.connect('./Data/pythonsqlite.db')
@@ -212,7 +208,6 @@ def insert_table(data,pos):
             cur.execute(sqlite_insert)
             connect.commit()
 
-        print("wah")
     
     except Error as e:
         print(("failed to insert into the sqlite table",e))
@@ -270,7 +265,7 @@ def menu():
             #print(row)
             
         elif (choice == 2):
-		    #set Matts max water depth
+		    #set max water depth
             wlMax = eval(input("enter depth in m\n"))
             wlMax = float(wlMax)
             set_tank_depth(wlMax)
@@ -377,7 +372,7 @@ def monitor():
                 #background recording of data
                 if counter ==7:
                     counter=0              
-                #print(chr(27) + "[2J") # clears terminal
+                print(chr(27) + "[2J") # clears terminal
                 print((Loading[counter]))
                 counter+=1
             #sleep program for 5 seconds, gives time for keyboard interupt, slows program down to make idle animation work, 
