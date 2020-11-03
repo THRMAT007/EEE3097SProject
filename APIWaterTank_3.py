@@ -361,7 +361,11 @@ def monitor():
             elif(get_WaterLevel() < 5):
                 print("Tank is 5% or less full, please disconnect from rainwater tank and use mains water")
                 warningflag = True
-                
+		
+            elif(get_WaterLevel() > 100):
+                print("Tank is 5% or less full, please disconnect from rainwater tank and use mains water")
+                warningflag = True
+		
             #stop program is there is a warning
             if(warningflag):
                 print("please fix issue before continueing monitoring")
