@@ -1,0 +1,13 @@
+VL53L1X
+adafruit-circuitpython-mcp3xxx
+board
+busio
+datetime
+digitalio
+io
+keyboard
+os
+re
+sqlite3
+time
+time
